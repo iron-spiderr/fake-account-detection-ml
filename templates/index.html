@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fake Account Detection System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-icon">🔍</span>
+          <span class="brand-title">FakeDetect</span>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="nav-btn active" data-tab="demo">📊 Demo Scan</button>
+          <button class="nav-btn" data-tab="scrape">🕵️ Scrape Profile</button>
+          <button class="nav-btn" data-tab="self">👤 Self Scan</button>
+          <button class="nav-btn" data-tab="username">🔎 Username Scan</button>
+          <button class="nav-btn" data-tab="manual">✏️ Manual Input</button>
+          <button class="nav-btn" data-tab="history">📋 History</button>
+        </nav>
+
+        <div class="sidebar-status" id="status-box">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="status-text">Checking…</span>
+        </div>
+      </aside>
+
+      <!-- Main content -->
+      <main class="main">
+        <header class="main-header">
+          <h1>Fake Account Detection System</h1>
+          <p class="subtitle">
+            10-model ensemble · BERT embeddings · Graph intelligence · SHAP
+            explainability
+          </p>
+        </header>
+
+        <!-- Demo Tab -->
+        <section class="tab-panel active" id="tab-demo">
+          <div class="panel-header">
+            <h2>Demo Scan</h2>
+            <p>
+              Test the detection pipeline on synthetic profiles — no API token
+              needed.
+            </p>
+          </div>
+          <div class="demo-btn-group">
+            <button class="btn btn-primary" id="btn-demo">
+              ⚡ Quick Demo
+              <span class="btn-sub">5 real + 5 fake profiles</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-demo-test">
+              🧪 Full Test Suite
+              <span class="btn-sub">Synthetic fake &amp; real users</span>
+            </button>
+          </div>
+          <div id="demo-summary" class="demo-summary hidden"></div>
+          <div id="results-demo" class="results-area"></div>
+        </section>
+
+        <!-- Scrape Tab -->
+        <section class="tab-panel" id="tab-scrape">
+          <div class="panel-header">
+            <h2>Live Profile Scrape</h2>
+            <p>
+              Enter any Instagram username — no API token needed.<br />
+              Works for <strong>public and private</strong> profiles. Private
+              accounts return partial data with a confidence warning.
+            </p>
+          </div>
+          <div class="input-group">
+            <span class="input-prefix">@</span>
+            <input
+              type="text"
+              id="scrape-username"
+              placeholder="username"
+              autocomplete="off"
+              autocapitalize="none"
+            />
+          </div>
+          <button
+            class="btn btn-primary"
+            id="btn-scrape"
+            style="margin-top: 1rem"
+          >
+            🔍 Scrape &amp; Analyse
+          </button>
+          <p class="form-hint">
+            A 2–5 s polite delay is added between requests to avoid rate
+            limiting. First request may take up to 10 s.
+          </p>
+          <div id="results-scrape" class="results-area"></div>
+        </section>
+
+        <!-- Self Scan Tab -->
+        <section class="tab-panel" id="tab-self">
+          <div class="panel-header">
+            <h2>Self Scan</h2>
+            <p>Scan your own authenticated Instagram account.</p>
+          </div>
+          <div class="form-group">
+            <label for="self-token"
+              >Instagram Access Token (IGAA… or EAA…)</label
+            >
+            <input
+              type="password"
+              id="self-token"
+              placeholder="Paste your token here…"
+            />
+          </div>
+          <button class="btn btn-primary" id="btn-self">Scan My Account</button>
+          <div id="results-self" class="results-area"></div>
+        </section>
+
+        <!-- Username Scan Tab -->
+        <section class="tab-panel" id="tab-username">
+          <div class="panel-header">
+            <h2>Username Scan</h2>
+            <p>
+              Scan other accounts via Business Discovery (EAA token + Facebook
+              Page required).
+            </p>
+          </div>
+          <div class="form-group">
+            <label for="user-token">Facebook/EAA Access Token</label>
+            <input type="password" id="user-token" placeholder="EAA… token" />
+          </div>
+          <div class="form-group">
+            <label for="user-names">Usernames (comma-separated)</label>
+            <input
+              type="text"
+              id="user-names"
+              placeholder="user1, user2, user3"
+            />
+          </div>
+          <button class="btn btn-primary" id="btn-scan-users">
+            Scan Usernames
+          </button>
+          <div id="results-username" class="results-area"></div>
+        </section>
+
+        <!-- Manual Input Tab -->
+        <section class="tab-panel" id="tab-manual">
+          <div class="panel-header">
+            <h2>Manual Input</h2>
+            <p>Enter profile details by hand and run detection instantly.</p>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="m-username">Username</label>
+              <input
+                type="text"
+                id="m-username"
+                placeholder="e.g. john_photo123"
+              />
+            </div>
+            <div class="form-group">
+              <label for="m-followers">Followers</label>
+              <input type="number" id="m-followers" value="500" min="0" />
+            </div>
+            <div class="form-group">
+              <label for="m-following">Following</label>
+              <input type="number" id="m-following" value="300" min="0" />
+            </div>
+            <div class="form-group">
+              <label for="m-posts">Posts</label>
+              <input type="number" id="m-posts" value="50" min="0" />
+            </div>
+            <div class="form-group">
+              <label for="m-website">Website URL (if any)</label>
+              <input type="text" id="m-website" placeholder="https://…" />
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="m-pic" checked /> Has Profile Picture
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="m-bio">Biography</label>
+            <textarea
+              id="m-bio"
+              rows="3"
+              placeholder="Enter account bio…"
+            ></textarea>
+          </div>
+          <button class="btn btn-primary" id="btn-manual">
+            Analyse Profile
+          </button>
+          <div id="results-manual" class="results-area"></div>
+        </section>
+
+        <!-- History Tab -->
+        <section class="tab-panel" id="tab-history">
+          <div class="panel-header">
+            <h2>Scan History</h2>
+            <p>All scan results from the current session.</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-clear-history">
+            Clear History
+          </button>
+          <div id="results-history" class="results-area"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Spinner overlay -->
+    <div class="spinner-overlay hidden" id="spinner">
+      <div class="spinner"></div>
+      <p>Analysing…</p>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

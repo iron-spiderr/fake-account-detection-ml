@@ -1,0 +1,120 @@
+14:25:28  INFO      Starting training pipeline …
+14:25:30  INFO      \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
+14:25:30  INFO      \u2551     FAKE ACCOUNT DETECTION — TRAINING    \u2551
+14:25:30  INFO      \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d
+14:25:30  INFO      Step 1-2: Data engineering …
+14:25:30  INFO      === Module 1: Data Engineering ===
+14:25:30  INFO      Loaded _load_fake_social_media — 3000 rows from fake_social_media.csv
+14:25:31  INFO      Loaded _load_excel_global — 3000 rows from fake_social_media_global_2.0_with_missing.xlsx
+14:25:31  INFO      Loaded _load_fake_users — 2500 rows from fake_users.csv
+14:25:31  INFO      Loaded _load_limfadd — 15000 rows from LIMFADD.csv
+14:25:31  INFO      Combined dataset: 23500 rows
+14:25:31  INFO      Dedup: 23500 \u2192 23416 rows
+14:25:31  INFO      Running IterativeImputer on 23 numeric columns …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\impute\_iterative.py:825: ConvergenceWarning: [IterativeImputer] Early stopping criterion not reached.
+  warnings.warn(
+14:26:48  INFO      Class distribution before balancing: {1: 17718, 0: 5698}
+14:26:51  INFO      After SMOTEENN: 29222 rows
+14:26:51  INFO      Data engineering complete. Final shape: (29222, 28)
+14:26:51  INFO      Step 3: Graph construction …
+14:26:51  INFO      === Module 3: Graph Construction ===
+14:26:51  INFO      Graph: 29222 nodes, 3800 edges
+14:26:56  INFO      Step 4-5: Feature extraction …
+14:26:56  INFO      Bio texts are empty — TF-IDF skipped; using zero embeddings.
+14:26:56  INFO      Raw feature matrix: 103 features, 29222 rows
+14:26:56  INFO      PCA: 103 \u2192 20 components (95% variance)
+14:26:56  INFO      Step 6: Splitting 80/20 …
+14:26:57  INFO      Step 7: Training base models …
+14:26:57  INFO      Training xgboost …
+14:26:58  INFO        xgboost val F1: 0.9679
+14:26:58  INFO      Training lightgbm …
+14:26:59  INFO        lightgbm val F1: 0.9639
+14:26:59  INFO      Training catboost …
+14:27:04  INFO        catboost val F1: 0.9644
+14:27:04  INFO      Training random_forest …
+14:27:09  INFO        random_forest val F1: 0.9647
+14:27:09  INFO      Training extra_trees …
+14:27:10  INFO        extra_trees val F1: 0.9707
+14:27:10  INFO      Training svm …
+14:27:34  INFO        svm val F1: 0.9676
+14:27:34  INFO      Training knn …
+14:27:34  INFO        knn val F1: 0.9623
+14:27:34  INFO      Training naive_bayes …
+14:27:35  INFO        naive_bayes val F1: 0.9492
+14:27:35  INFO      Training mlp …
+14:27:42  INFO        mlp val F1: 0.9696
+14:27:42  INFO      Training adaboost …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+14:27:56  INFO        adaboost val F1: 0.9568
+14:27:56  INFO      Trained 10 base models.
+14:27:56  INFO      Step 8: Computing voting weights …
+14:27:59  INFO      Voting weights: {'xgboost': np.float64(0.1004), 'lightgbm': np.float64(0.1), 'catboost': np.float64(0.1001), 'random_forest': np.float64(0.1001), 'extra_trees': np.float64(0.1007), 'svm': np.float64(0.1004), 'knn': np.float64(0.0999), 'naive_bayes': np.float64(0.0985), 'mlp': np.float64(0.1006), 'adaboost': np.float64(0.0993)}
+14:28:02  INFO      Optimal threshold: 0.32 (F1=0.9713)
+14:28:02  INFO      Step 9-10: OOF stacking + meta-learner …
+14:28:02  INFO      OOF fold 1/5 …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+14:28:45  INFO      OOF fold 2/5 …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+14:29:26  INFO      OOF fold 3/5 …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+14:30:11  INFO      OOF fold 4/5 …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+14:30:55  INFO      OOF fold 5/5 …
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+C:\Users\simio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\sklearn\ensemble\_weight_boosting.py:527: FutureWarning: The SAMME.R algorithm (the default) is deprecated and will be removed in 1.6. Use the SAMME algorithm to circumvent this warning.
+  warnings.warn(
+14:31:37  INFO      Training meta-learner on OOF features (23377, 11) …
+14:31:37  INFO      Step 11-12: SHAP + PCA interpreter …
+14:31:43  INFO      SHAPExplainer initialised.
+14:31:43  INFO      Step 13: Saving pipeline …
+14:31:44  INFO      Pipeline saved to: saved_models\pipeline.pkl
+14:31:44  INFO      Step 14: Evaluating on test set …
+14:31:47  INFO      \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+14:31:47  INFO      Test Accuracy:  97.06%
+14:31:47  INFO      ROC-AUC:        0.9969
+14:31:47  INFO      F1 (fake):      0.9693
+14:31:47  INFO      F1 (genuine):   0.9718
+14:31:47  INFO      \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+14:31:48  INFO      Training complete. Metrics: {'accuracy': 0.9706, 'roc_auc': np.float64(0.9969), 'f1_fake': np.float64(0.9693), 'f1_genuine': np.float64(0.9718)}
+
+Classification Report:
+               precision    recall  f1-score   support
+
+     GENUINE       0.97      0.97      0.97      3050
+        FAKE       0.97      0.97      0.97      2795
+
+    accuracy                           0.97      5845
+   macro avg       0.97      0.97      0.97      5845
+weighted avg       0.97      0.97      0.97      5845
+
+Confusion Matrix:
+ [[2962   88]
+ [  84 2711]]

@@ -1,0 +1,31 @@
+# Environment / secrets
+.env
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Models / data artefacts
+saved_models/
+catboost_info/
+
+# OS
+.DS_Store
+Thumbs.db
