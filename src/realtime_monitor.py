@@ -60,7 +60,7 @@ class RealtimeMonitor:
     # -----------------------------------------------------------------------
 
     def scan(self, usernames: list[str]) -> pd.DataFrame:
-        from instagram_api import InstagramAPIClient
+        from .instagram_api import InstagramAPIClient
         if not self.token:
             raise ValueError("API token required for live scanning.")
         client = InstagramAPIClient(self.token)
@@ -69,8 +69,8 @@ class RealtimeMonitor:
         return results
 
     def scan_demo(self) -> pd.DataFrame:
-        from instagram_api import create_demo_profiles
-        from modules910 import predict
+        from .instagram_api import create_demo_profiles
+        from .pipeline import predict
         df = create_demo_profiles()
         results = predict(df, pipeline=self.pipeline)
         self._record(results, "demo")

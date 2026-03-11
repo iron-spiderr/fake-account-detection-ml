@@ -289,7 +289,7 @@ def build_unified_features(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    from module1_data_engineering import run_data_engineering
+    from .data_engineering import run_data_engineering
     df = run_data_engineering(balance=False)
     X, scaler, pca, names = build_unified_features(df, embedder=None, fit=True)
     print("Feature matrix shape:", X.shape)

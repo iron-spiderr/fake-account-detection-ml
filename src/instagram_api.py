@@ -208,7 +208,7 @@ class InstagramAPIClient:
     def fetch_and_analyse(self, usernames: list[str],
                            pipeline: dict) -> pd.DataFrame:
         """Fetch profiles for a list of usernames and run through pipeline."""
-        from modules910 import predict
+        from .pipeline import predict
         rows = []
         for uname in usernames:
             try:
@@ -224,7 +224,7 @@ class InstagramAPIClient:
 
     def demo_analyse(self, pipeline: dict) -> pd.DataFrame:
         """Run analysis on built-in demo profiles (no token needed)."""
-        from modules910 import predict
+        from .pipeline import predict
         rows = [self.profile_to_dataframe(p, []) for p in _DEMO_PROFILES]
         df = pd.concat(rows, ignore_index=True)
         return predict(df, pipeline=pipeline)

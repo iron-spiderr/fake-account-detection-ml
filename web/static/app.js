@@ -151,8 +151,9 @@ function buildCard(r) {
   if (r.annotated_features && r.annotated_features.length > 0) {
     r.annotated_features.forEach((af) => {
       const chip = document.createElement("span");
-      const isPositive = af.impact > 0;
-      chip.className = `feat-chip ${isPositive ? "feat-fake" : "feat-genuine"}`;
+      // Positive impact = fake signal (red), negative = genuine signal (green)
+      const isFakeSignal = af.impact > 0;
+      chip.className = `feat-chip ${isFakeSignal ? "feat-fake" : "feat-genuine"}`;
       if (af.estimated) {
         chip.className += " feat-estimated";
         chip.title = "This feature was estimated (not directly observed)";
@@ -177,9 +178,9 @@ function buildCard(r) {
   shapBars.className = "shap-bars";
   const featsToShow =
     r.annotated_features ||
-    (r.top_shap_values || []).map(([name, val]) => ({
-      name,
-      impact: val,
+    (r.top_shap_values || []).map((t) => ({
+      name: Array.isArray(t) ? (t.length === 3 ? t[1] : t[0]) : t,
+      impact: Array.isArray(t) ? t[t.length - 1] : 0,
       estimated: false,
     }));
   if (featsToShow.length > 0) {
@@ -217,12 +218,14 @@ function buildCard(r) {
   // Data completeness indicator (shown for scrape/manual modes)
   if (r.data_completeness !== undefined) {
     const pct = Math.round(r.data_completeness * 100);
+    const isLow = pct < 60;
     const completenessWrap = document.createElement("div");
     completenessWrap.className = "card-completeness";
     completenessWrap.innerHTML = `
+      ${isLow ? '<div class="completeness-warning">\u26a0 Low data availability \u2014 prediction may be less reliable</div>' : ""}
       <span class="completeness-label">Data completeness: ${pct}%</span>
       <div class="completeness-bar-track">
-        <div class="completeness-bar-fill" style="width:${pct}%"></div>
+        <div class="completeness-bar-fill${isLow ? " completeness-low" : ""}" style="width:${pct}%"></div>
       </div>
     `;
     explBody.appendChild(completenessWrap);

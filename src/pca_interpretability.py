@@ -68,6 +68,24 @@ FEATURE_DESCRIPTIONS_ZERO = {
     "verified_low_follow": "Account is verified or has 100+ followers",
 }
 
+# Semantic direction for zero-value features.
+# True  = zero/absent value is a FAKE signal  (increases fake likelihood)
+# False = zero/absent value is a GENUINE signal (decreases fake likelihood)
+# Features not listed here fall back to the raw SHAP sign.
+FEATURE_ZERO_IS_FAKE_SIGNAL = {
+    "bio_length": True,                # Empty biography        → suspicious
+    "has_profile_pic": True,           # No profile pic         → suspicious
+    "verified": True,                  # Not verified           → slightly suspicious
+    "posts": True,                     # No posts               → suspicious
+    "log_posts": True,                 # No posts (log)         → suspicious
+    "followers": True,                 # Zero followers         → suspicious
+    "log_followers": True,             # Zero followers (log)   → suspicious
+    "following": True,                 # Not following anyone   → suspicious
+    "suspicious_links_in_bio": False,  # No suspicious links    → genuine signal
+    "bio_spam_score": False,           # No spam keywords       → genuine signal
+    "bio_has_url": False,              # No URL in bio          → genuine signal
+}
+
 
 class PCAInterpreter:
     """Map SHAP values from PCA space back to original feature names."""

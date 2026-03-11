@@ -36,10 +36,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # Data paths
-    p.add_argument("--primary",     default="fake_social_media.csv")
-    p.add_argument("--fake-users",  default="fake_users.csv")
-    p.add_argument("--limfadd",     default="LIMFADD.csv")
-    p.add_argument("--excel",       default="fake_social_media_global_2.0_with_missing.xlsx")
+    p.add_argument("--primary",     default="data/fake_social_media.csv")
+    p.add_argument("--fake-users",  default="data/fake_users.csv")
+    p.add_argument("--limfadd",     default="data/LIMFADD.csv")
+    p.add_argument("--excel",       default="data/fake_social_media_global_2.0_with_missing.xlsx")
 
     # Training flags
     p.add_argument("--no-bert",  action="store_true",
@@ -91,7 +91,7 @@ def main():
     if not inference_modes:
         # ── TRAINING ─────────────────────────────────────────────────────────
         logger.info("Starting training pipeline …")
-        from modules910 import train_pipeline
+        from src.pipeline import train_pipeline
         pipeline = train_pipeline(
             primary_path=args.primary,
             fake_users_path=args.fake_users,
@@ -108,7 +108,7 @@ def main():
         return
 
     # ── Load saved pipeline for inference ────────────────────────────────────
-    from modules910 import load_pipeline
+    from src.pipeline import load_pipeline
     try:
         pipeline = load_pipeline(args.save)
     except FileNotFoundError:
@@ -117,8 +117,8 @@ def main():
 
     # ── Demo / Predict ────────────────────────────────────────────────────────
     if args.demo or args.predict:
-        from instagram_api import create_demo_profiles
-        from modules910 import predict
+        from src.instagram_api import create_demo_profiles
+        from src.pipeline import predict
         df = create_demo_profiles()
         results = predict(df, pipeline=pipeline)
         print("\n" + "=" * 60)
@@ -142,7 +142,7 @@ def main():
         if not args.token:
             logger.error("--token required for --scan-self")
             sys.exit(1)
-        from instagram_api import InstagramAPIClient
+        from src.instagram_api import InstagramAPIClient
         client = InstagramAPIClient(args.token)
         results = client.demo_analyse(pipeline)
         _print_results(results)
@@ -152,7 +152,7 @@ def main():
         if not args.token:
             logger.error("--token required for --instagram")
             sys.exit(1)
-        from instagram_api import InstagramAPIClient
+        from src.instagram_api import InstagramAPIClient
         client = InstagramAPIClient(args.token)
         usernames = [u.strip() for u in args.instagram.split(",")]
         results = client.fetch_and_analyse(usernames, pipeline)
@@ -163,7 +163,7 @@ def main():
         if not args.token:
             logger.error("--token required for --realtime")
             sys.exit(1)
-        from realtime_monitor import RealtimeMonitor
+        from src.realtime_monitor import RealtimeMonitor
         monitor = RealtimeMonitor(pipeline, api_token=args.token)
         usernames = [u.strip() for u in args.realtime.split(",")]
         logger.info("Starting continuous monitoring (interval=%d min) …", args.interval)

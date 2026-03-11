@@ -1,8 +1,12 @@
-# Environment / secrets
+# ============================================================
+# Fake Account Detection System — .gitignore
+# ============================================================
+
+# ----- Secrets & credentials -----
 .env
 *.pem
 
-# Python
+# ----- Python -----
 __pycache__/
 *.py[cod]
 *.pyo
@@ -13,19 +17,37 @@ dist/
 build/
 *.egg
 
-# Virtual environments
+# ----- Virtual environments -----
 venv/
 .venv/
 env/
+.conda/
 
-# IDE
+# ----- IDE / editor -----
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Models / data artefacts
+# ----- Trained model artefacts -----
+# These are large binary files — regenerate with `python main.py`
 saved_models/
 catboost_info/
 
-# OS
+# ----- Generated / temporary files -----
+training_output.txt
+scripts/test_profiles.csv
+*.log
+
+# ----- OS files -----
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# ----- Jupyter -----
+.ipynb_checkpoints/
+
+# ----- Large datasets (optional — uncomment to exclude) -----
+# data/fake_social_media_global_2.0_with_missing.xlsx
+# data/LIMFADD.csv

@@ -1,51 +1,98 @@
 # Fake Account Detection System
 
-> Multimodal & Graph-Based Ensemble Model for detecting fake social-media
-> accounts.
+> A production-grade ML system that detects fake and bot-operated social media accounts using a **10-model stacked ensemble** with SHAP-based explainability.
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](#requirements)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#license)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Accuracy: 97%](https://img.shields.io/badge/Accuracy-97.06%25-brightgreen.svg)](#results)
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Web UI Screenshot" width="700">
+</p>
 
 ---
 
-## Overview
+## Highlights
 
-This system classifies social-media accounts as **FAKE** or **GENUINE** by
-fusing ten calibrated machine-learning models, graph-centrality features, and
-BERT-based text embeddings through a two-stage stacked ensemble. It ships
-with Instagram Graph API integration for real-time scanning and SHAP-based
-explainability that maps PCA components back to human-readable feature names.
+- **97.06% accuracy** on held-out test set (ROC-AUC: 0.9969)
+- **10 calibrated classifiers** (XGBoost, LightGBM, CatBoost, RF, SVM, MLP, etc.) fused via soft voting + OOF meta-learning
+- **103 engineered features** from profile metadata, text embeddings, and social graph centrality
+- **SHAP explanations** with PCA inverse-mapping — every prediction is interpretable
+- **Flask web UI** for live Instagram scraping, manual input, and batch scanning
+- **Real-time monitoring** daemon for continuous surveillance
 
-| Metric          | Value  |
-| --------------- | ------ |
-| Test Accuracy   | 97.06% |
-| ROC-AUC         | 0.9969 |
-| F1 (fake class) | 0.9693 |
+---
+
+## Results
+
+Evaluated on a held-out 20% test set (5,845 samples):
+
+| Metric                | Value  |
+| --------------------- | ------ |
+| **Test Accuracy**     | 97.06% |
+| **ROC-AUC**           | 0.9969 |
+| **F1 (Fake class)**   | 0.9693 |
+| **F1 (Genuine)**      | 0.9718 |
+| **Optimal Threshold** | 0.32   |
+
+```
+Confusion Matrix:
+                Predicted Genuine   Predicted Fake
+Actual Genuine       2,962               88
+Actual Fake             84            2,711
+```
+
+---
+
+## Architecture
+
+```
+Raw Data ──► Data Engineering ──► Feature Extraction (103 features)
+             (clean, impute,       (metadata + BERT/TF-IDF + graph)
+              SMOTEENN balance)              │
+                                    StandardScaler + PCA (95% var)
+                                             │
+                               ┌─────────────┼─────────────┐
+                               │   10 Calibrated Base Models │
+                               │  (XGBoost, LightGBM, CatBoost, │
+                               │   RF, ET, SVM, KNN, NB, MLP, Ada)│
+                               └─────────────┼─────────────┘
+                                             │
+                                  F1-Weighted Soft Voting
+                                             │
+                                  OOF Stacking + Graph Risk
+                                             │
+                                  Logistic Regression Meta-Learner
+                                             │
+                                  SHAP Explanation + Output
+```
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Clone & enter the project
-cd doc
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/fake-account-detection.git
+cd fake-account-detection
 
-# 2. Create a virtual environment (recommended)
+# Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS / Linux
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
 
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Train the pipeline
-python main.py --no-bert      # fast (TF-IDF proxy)
-python main.py                # full (downloads BERT model)
+# Train the model
+python main.py --no-bert         # Fast mode (TF-IDF proxy)
+python main.py                   # Full mode (BERT embeddings)
 
-# 5. Run predictions
-python main.py --predict
+# Launch the web UI
+python -m web.app
+# Open http://127.0.0.1:5000
 
-# 6. Demo mode (no API key needed)
+# Or run predictions from CLI
 python main.py --demo
 ```
 
@@ -54,183 +101,133 @@ python main.py --demo
 ## Project Structure
 
 ```
-doc/
-├── main.py                        # CLI entry point
-├── module1_data_engineering.py     # M1: cleaning, imputation, SMOTEENN
-├── module2_feature_extraction.py   # M2: metadata + BERT + PCA
-├── module3_graph_construction.py   # M3: NetworkX graph + GNN
-├── module4_base_models.py          # M4: 10 base classifiers
-├── module5_soft_voting.py          # M5: F1-weighted soft voting
-├── modules678.py                   # M6-8: graph risk, stacking, SHAP
-├── modules910.py                   # M9-10: train & predict pipelines
-├── module11_output.py              # M11: output formatting
-├── instagram_api.py                # Instagram Graph API v19.0 client
-├── pca_interpretability.py         # PCA ↔ original feature mapping
-├── realtime_monitor.py             # Continuous monitoring daemon
-├── requirements.txt                # Python dependencies
-├── DESCRIPTION.md                  # Detailed process documentation
-├── README.md                       # This file
-├── fake_social_media.csv           # Dataset: social media profiles
-├── fake_users.csv                  # Dataset: fake user accounts
-├── real_users.csv                  # Dataset: real user accounts
-└── saved_models/
-    └── pipeline.pkl                # Serialised trained pipeline
+fake-account-detection/
+│
+├── main.py                          # CLI entry point (train / predict / scan)
+├── requirements.txt                 # Python dependencies
+├── .gitignore
+├── LICENSE
+├── README.md
+│
+├── src/                             # Core ML pipeline (Python package)
+│   ├── __init__.py
+│   ├── data_engineering.py          # Data loading, cleaning, SMOTEENN balancing
+│   ├── feature_extraction.py        # 103 features: metadata + BERT/TF-IDF + PCA
+│   ├── graph_construction.py        # NetworkX social graph + centrality features
+│   ├── base_models.py               # 10 calibrated classifiers
+│   ├── soft_voting.py               # F1-weighted ensemble voting
+│   ├── stacking_shap.py             # OOF stacking, meta-learner, SHAP explainer
+│   ├── pipeline.py                  # End-to-end training & prediction orchestration
+│   ├── output.py                    # Human-readable output formatting
+│   ├── pca_interpretability.py      # SHAP ↔ original feature name mapping
+│   ├── instagram_api.py             # Instagram Graph API client
+│   ├── scraper.py                   # Instagram web profile scraper
+│   └── realtime_monitor.py          # Continuous monitoring daemon
+│
+├── web/                             # Flask web application
+│   ├── app.py                       # Flask server + API endpoints
+│   ├── static/
+│   │   ├── app.js                   # Frontend logic
+│   │   └── style.css                # Dark-theme UI styles
+│   └── templates/
+│       └── index.html               # Single-page app template
+│
+├── data/                            # Training datasets
+│   ├── fake_social_media.csv        # Primary dataset (3,000 profiles)
+│   ├── fake_users.csv               # Twitter fake accounts (2,500)
+│   ├── LIMFADD.csv                  # Instagram-style multi-class (15,000)
+│   └── fake_social_media_global_2.0_with_missing.xlsx
+│
+├── scripts/                         # Utility scripts
+│   └── generate_test_data.py        # Generate synthetic test profiles
+│
+├── docs/                            # Documentation
+│   ├── PROJECT_DESCRIPTION.md       # Full technical documentation
+│   └── PROCESS_DOCUMENT.md          # Development process notes
+│
+└── saved_models/                    # Generated after training (gitignored)
+    └── pipeline.pkl
 ```
+
+---
+
+## Web UI
+
+The Flask web interface provides six modes of operation:
+
+| Tab               | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| **Demo Scan**     | One-click demo with curated profiles             |
+| **Scrape**        | Enter any public Instagram username              |
+| **Self Scan**     | Scan your own account via Graph API token        |
+| **Username Scan** | Batch scan multiple users via Business Discovery |
+| **Manual Input**  | Enter profile fields manually (offline mode)     |
+| **History**       | View all previous scan results                   |
+
+Each result card shows: prediction label, probability bar, risk band, graph risk, SHAP feature contributions, and a natural-language explanation.
 
 ---
 
 ## CLI Reference
 
-### Training
-
 ```bash
-python main.py                          # Train with BERT embeddings
-python main.py --no-bert                # Train with TF-IDF proxy (faster)
-python main.py --optuna --optuna-trials 100  # Bayesian hyperparameter tuning
-python main.py --save-path model.pkl    # Custom save location
+# Training
+python main.py                                    # Train with BERT
+python main.py --no-bert                          # Train with TF-IDF (faster)
+python main.py --optuna --optuna-trials 100       # Bayesian hyperparameter tuning
+
+# Inference
+python main.py --demo                             # Demo with synthetic profiles
+python main.py --predict                          # Predict on test split
+python main.py --explain-pca                      # PCA component report
+
+# Instagram scanning (requires API token)
+python main.py --instagram user1,user2 --token TOKEN
+python main.py --realtime user1,user2 --token TOKEN --interval 30
 ```
-
-### Prediction
-
-```bash
-python main.py --predict                # Predict on test split
-python main.py --predict --save-path model.pkl
-```
-
-### Instagram Scanning
-
-```bash
-# One-shot scan (requires API token)
-python main.py --instagram user1,user2 --token YOUR_TOKEN
-
-# Continuous monitoring every 30 minutes
-python main.py --realtime user1,user2 --token YOUR_TOKEN --interval 30
-
-# Demo mode (synthetic profiles, no token needed)
-python main.py --demo
-```
-
-### Explainability
-
-```bash
-python main.py --explain-pca           # Print PCA component meanings
-```
-
-### All Flags
-
-| Flag              | Type | Default                     | Description                         |
-| ----------------- | ---- | --------------------------- | ----------------------------------- |
-| `--predict`       | flag | —                           | Run prediction mode                 |
-| `--optuna`        | flag | —                           | Enable Optuna tuning                |
-| `--optuna-trials` | int  | 50                          | Number of Optuna trials             |
-| `--no-bert`       | flag | —                           | Use TF-IDF instead of BERT          |
-| `--save-path`     | str  | `saved_models/pipeline.pkl` | Pipeline artefact path              |
-| `--instagram`     | str  | —                           | Comma-separated usernames           |
-| `--demo`          | flag | —                           | Demo mode (synthetic profiles)      |
-| `--realtime`      | str  | —                           | Usernames for continuous monitoring |
-| `--interval`      | int  | 60                          | Monitoring interval (minutes)       |
-| `--token`         | str  | —                           | Instagram Graph API token           |
-| `--explain-pca`   | flag | —                           | PCA interpretability report         |
 
 ---
 
 ## Datasets
 
-The system expects the following files in the project directory:
+| File                              | Rows   | Description                                  |
+| --------------------------------- | ------ | -------------------------------------------- |
+| `fake_social_media.csv`           | 3,000  | Primary dataset with `is_fake` labels        |
+| `fake_users.csv`                  | 2,500  | Twitter fake accounts (all label=1)          |
+| `LIMFADD.csv`                     | 15,000 | Instagram-style: Bot/Scam/Spam → 1, Real → 0 |
+| `...global_2.0_with_missing.xlsx` | 3,000  | Extended dataset with missing values         |
 
-| File                                             | Description                                     |
-| ------------------------------------------------ | ----------------------------------------------- |
-| `fake_social_media.csv`                          | Primary dataset with profile metadata           |
-| `fake_social_media_global_2.0_with_missing.xlsx` | Extended dataset with missing values            |
-| `fake_users.csv`                                 | Twitter fake account dataset (cross-validation) |
-| `real_users.csv`                                 | Twitter real account dataset (cross-validation) |
-
----
-
-## Pipeline Architecture
-
-```
-Raw Data → Data Engineering → Feature Extraction (97 features)
-         → PCA (≈77 components) → 10 Base Models (calibrated)
-         → Soft Voting → OOF Stacking → Meta-Learner
-         → SHAP Explanation → Output Report
-```
-
-### Models Used
-
-| Model         | Library      | Role                        |
-| ------------- | ------------ | --------------------------- |
-| XGBoost       | xgboost      | Gradient boosting (primary) |
-| LightGBM      | lightgbm     | Fast gradient boosting      |
-| CatBoost      | catboost     | Categorical-aware boosting  |
-| Random Forest | scikit-learn | Bagging ensemble            |
-| Extra Trees   | scikit-learn | Randomised splits           |
-| SVM (RBF)     | scikit-learn | Kernel classifier           |
-| KNN           | scikit-learn | Instance-based              |
-| Naïve Bayes   | scikit-learn | Probabilistic baseline      |
-| MLP           | scikit-learn | Neural network              |
-| AdaBoost      | scikit-learn | Adaptive boosting           |
-
-### Stacking Strategy
-
-1. Each model produces isotonically calibrated `P(fake)`.
-2. F1-weighted soft voting fuses probabilities.
-3. 5-fold OOF stacking feeds a `LogisticRegression` meta-learner.
-4. SHAP TreeExplainer provides per-prediction feature attributions.
-5. PCA inverse mapping translates SHAP back to original feature names.
+Combined: **23,416 rows** → After SMOTEENN balancing: **29,222 training samples**.
 
 ---
 
-## Requirements
+## Key Technologies
 
-- Python ≥ 3.11
-- See `requirements.txt` for the full dependency list.
-
-### Core Dependencies
-
-```
-scikit-learn
-xgboost
-lightgbm
-catboost
-imbalanced-learn
-pandas
-numpy
-networkx
-python-louvain
-shap
-joblib
-optuna
-sentence-transformers   # optional (for real BERT)
-torch-geometric         # optional (for GNN)
-matplotlib              # optional (for plots)
-requests                # for Instagram API
-```
+| Category                  | Tools                                      |
+| ------------------------- | ------------------------------------------ |
+| **ML Models**             | XGBoost, LightGBM, CatBoost, scikit-learn  |
+| **Balancing**             | SMOTEENN (imbalanced-learn)                |
+| **Text Embeddings**       | sentence-transformers / TF-IDF+SVD         |
+| **Graph Analysis**        | NetworkX, Louvain community detection      |
+| **Explainability**        | SHAP (TreeExplainer) + PCA inverse mapping |
+| **Web Framework**         | Flask                                      |
+| **Hyperparameter Tuning** | Optuna                                     |
 
 ---
 
-## Instagram API Setup
+## How It Works
 
-1. Create a [Meta Developer](https://developers.facebook.com/) app.
-2. Add the **Instagram Graph API** product.
-3. Generate a long-lived user access token with `instagram_basic` scope.
-4. Pass the token via `--token` or set the `INSTAGRAM_ACCESS_TOKEN`
-   environment variable.
+1. **Data Engineering** — Four datasets are loaded, cleaned, adversarially normalised, imputed (MICE), and class-balanced with SMOTEENN.
+2. **Feature Extraction** — 34 metadata features + 64-dim text embeddings + 5 graph centrality features = 103 features, reduced via PCA to ~20 components.
+3. **Base Model Training** — 10 diverse classifiers, each wrapped in isotonic calibration for reliable probabilities.
+4. **Ensemble Fusion** — F1-weighted soft voting combines base model outputs; 5-fold OOF stacking trains a Logistic Regression meta-learner.
+5. **Explainability** — SHAP values computed in PCA space are projected back to original feature names via component loadings.
+6. **Inference** — Saved pipeline processes any new profile in <1 second with full explanation.
 
-```bash
-export INSTAGRAM_ACCESS_TOKEN="your_token_here"
-python main.py --instagram targetuser
-```
-
----
-
-## Detailed Documentation
-
-See [DESCRIPTION.md](DESCRIPTION.md) for an in-depth explanation of every
-module, the mathematical foundations, and the complete data-flow diagram.
+For detailed technical documentation, see [docs/PROJECT_DESCRIPTION.md](docs/PROJECT_DESCRIPTION.md).
 
 ---
 
 ## License
 
-This project is provided for educational and research purposes.
+This project is provided under the [MIT License](LICENSE) for educational and research purposes.

@@ -27,7 +27,7 @@ def _risk_band(prob: float) -> str:
 
 def _get_display_desc(feature_tuple, profile_row=None):
     """Pick the right description based on actual feature value."""
-    from pca_interpretability import FEATURE_DESCRIPTIONS_ZERO
+    from .pca_interpretability import FEATURE_DESCRIPTIONS_ZERO
     if len(feature_tuple) == 3:
         raw_name, desc, val = feature_tuple
     else:
@@ -42,10 +42,36 @@ def _get_display_desc(feature_tuple, profile_row=None):
     return desc, val
 
 
+def _corrected_direction(raw_name, shap_val, profile_row):
+    """Determine the correct semantic direction for a feature.
+
+    Returns ``"increases_fake"`` or ``"decreases_fake"``.
+    Applies semantic overrides for zero-value features where the raw SHAP
+    sign would create a logical contradiction in user-facing text (e.g.
+    "No suspicious links → increases fake likelihood").
+    """
+    from .pca_interpretability import (FEATURE_DESCRIPTIONS_ZERO,
+                                       FEATURE_ZERO_IS_FAKE_SIGNAL)
+
+    shap_direction = "increases_fake" if shap_val > 0 else "decreases_fake"
+
+    # Check if we're displaying a zero-value description
+    if profile_row and raw_name and raw_name in FEATURE_DESCRIPTIONS_ZERO:
+        raw_val = profile_row.get(raw_name)
+        if raw_val is not None and (raw_val == 0 or raw_val is False or raw_val == ""):
+            # Feature is zero → apply semantic override if available
+            if raw_name in FEATURE_ZERO_IS_FAKE_SIGNAL:
+                is_fake_signal = FEATURE_ZERO_IS_FAKE_SIGNAL[raw_name]
+                return "increases_fake" if is_fake_signal else "decreases_fake"
+
+    return shap_direction
+
+
 def generate_explanation(label: str, prob: float, risk: str,
                           top_features: list | None = None,
                           top_real: list | None = None,
-                          profile_row: dict | None = None) -> str:
+                          profile_row: dict | None = None,
+                          data_completeness: float | None = None) -> str:
     """Generate a natural-language risk explanation string."""
     use = top_real if top_real else top_features
     parts = [f"Prediction: {label} (probability: {prob * 100:.2f}%, risk: {risk})."]
@@ -53,14 +79,38 @@ def generate_explanation(label: str, prob: float, risk: str,
         # Compute total absolute impact for percentage conversion
         all_vals = [t[-1] for t in use]
         total_abs = sum(abs(v) for v in all_vals) or 1.0
-        feat_parts = []
-        for t in use[:3]:
+        supporting_parts = []
+        opposing_parts = []
+        for t in use[:5]:
+            raw_name = t[0] if len(t) >= 3 else None
             desc, val = _get_display_desc(t, profile_row)
-            direction = "increases" if val > 0 else "decreases"
+            direction = _corrected_direction(raw_name, val, profile_row)
             pct = abs(val) / total_abs * 100
-            feat_parts.append(
-                f"{desc} {direction} fake likelihood (impact: {pct:.1f}%)")
-        parts.append("Key factors: " + "; ".join(feat_parts) + ".")
+
+            if direction == "increases_fake":
+                entry = f"{desc} increases fake likelihood (impact: {pct:.1f}%)"
+            else:
+                entry = f"{desc} reduces fake likelihood (impact: {pct:.1f}%)"
+
+            # Does this feature support or oppose the prediction?
+            supports_prediction = (
+                (label == "FAKE" and direction == "increases_fake") or
+                (label == "GENUINE" and direction == "decreases_fake")
+            )
+            if supports_prediction:
+                supporting_parts.append(entry)
+            else:
+                opposing_parts.append(entry)
+
+        if supporting_parts:
+            parts.append("Key factors: " + "; ".join(supporting_parts[:3]) + ".")
+        if opposing_parts:
+            parts.append("Counterevidence: " + "; ".join(opposing_parts[:2]) + ".")
+
+    if data_completeness is not None and data_completeness < 0.6:
+        parts.append(
+            f"\u26a0 Limited data available ({data_completeness * 100:.0f}%) "
+            "\u2014 prediction reliability is reduced.")
     return " ".join(parts)
 
 
@@ -152,7 +202,7 @@ def format_output(df: pd.DataFrame,
         explanation = generate_explanation(
             label, prob, band, top_feats, top_real, profile_row=profile_row)
 
-        # Annotate each SHAP feature with observed/estimated status
+        # Annotate each SHAP feature with observed/estimated status and direction
         # top_real now returns 3-tuples (raw_name, desc, val)
         use = top_real or top_feats or []
         total_abs = sum(abs(t[-1]) for t in use) or 1.0
@@ -162,20 +212,28 @@ def format_output(df: pd.DataFrame,
             raw_name = t[0] if len(t) == 3 else desc
             is_estimated = raw_name in ESTIMATED_FEATURES or desc in ESTIMATED_FEATURES
             pct = abs(val) / total_abs * 100
+            direction = _corrected_direction(raw_name, val, profile_row)
+            # Signed impact: positive = fake signal, negative = genuine signal
+            signed_pct = round(pct, 1) if direction == "increases_fake" else round(-pct, 1)
             annotated_features.append({
                 "name": desc,
-                "impact": round(pct, 1),
+                "impact": signed_pct,
+                "direction": direction,
                 "estimated": is_estimated,
             })
 
         # For top_features / top_shap_values, use display descriptions
+        # Store signed impacts so downstream consumers preserve direction
         display_features = []
         display_shap = []
         for t in use:
             desc, val = _get_display_desc(t, profile_row)
+            raw_name = t[0] if len(t) == 3 else None
             pct = abs(val) / total_abs * 100
+            direction = _corrected_direction(raw_name, val, profile_row)
+            signed_pct = round(pct, 1) if direction == "increases_fake" else round(-pct, 1)
             display_features.append(desc)
-            display_shap.append((desc, round(pct, 1)))
+            display_shap.append((raw_name, desc, signed_pct))
 
         records.append({
             "username": str(usernames[i]).replace("unknown_", "@user_")

@@ -15,7 +15,7 @@ from sklearn.metrics import (accuracy_score, f1_score, roc_auc_score,
 
 logger = logging.getLogger(__name__)
 
-MODEL_DIR = Path("saved_models")
+MODEL_DIR = Path(__file__).resolve().parent.parent / "saved_models"
 PIPELINE_PATH = MODEL_DIR / "pipeline.pkl"
 
 
@@ -24,10 +24,10 @@ PIPELINE_PATH = MODEL_DIR / "pipeline.pkl"
 # ===========================================================================
 
 def train_pipeline(
-        primary_path: str = "fake_social_media.csv",
-        fake_users_path: str = "fake_users.csv",
-        limfadd_path: str = "LIMFADD.csv",
-        excel_path: str = "fake_social_media_global_2.0_with_missing.xlsx",
+        primary_path: str = "data/fake_social_media.csv",
+        fake_users_path: str = "data/fake_users.csv",
+        limfadd_path: str = "data/LIMFADD.csv",
+        excel_path: str = "data/fake_social_media_global_2.0_with_missing.xlsx",
         use_bert: bool = False,
         use_gnn: bool = False,
         use_optuna: bool = False,
@@ -39,15 +39,15 @@ def train_pipeline(
     Full 14-step training pipeline.
     Returns the pipeline dict (also saved to disk at `save_path`).
     """
-    from module1_data_engineering import run_data_engineering
-    from module2_feature_extraction import build_unified_features, get_embedder
-    from module3_graph_construction import build_graph_features
-    from module4_base_models import (train_base_models, get_ensemble_probabilities,
-                                      optuna_tune_xgboost, _build_model_zoo)
-    from module5_soft_voting import SoftWeightedVoter
-    from modules678 import (OOFStackedEnsemble, compute_graph_risk,
-                             get_shap_explainer)
-    from pca_interpretability import PCAInterpreter
+    from .data_engineering import run_data_engineering
+    from .feature_extraction import build_unified_features, get_embedder
+    from .graph_construction import build_graph_features
+    from .base_models import (train_base_models, get_ensemble_probabilities,
+                               optuna_tune_xgboost, _build_model_zoo)
+    from .soft_voting import SoftWeightedVoter
+    from .stacking_shap import (OOFStackedEnsemble, compute_graph_risk,
+                                 get_shap_explainer)
+    from .pca_interpretability import PCAInterpreter
 
     logger.info("╔══════════════════════════════════════════╗")
     logger.info("║     FAKE ACCOUNT DETECTION — TRAINING    ║")
@@ -73,7 +73,7 @@ def train_pipeline(
         df, embedder=embedder, graph_features=graph_feat, fit=True)
 
     # fixed_meta_cols for inference alignment
-    from module2_feature_extraction import extract_metadata_features
+    from .feature_extraction import extract_metadata_features
     fixed_meta_cols = extract_metadata_features(df.head(1)).columns.tolist()
 
     # Step 6: Train/test split
@@ -157,8 +157,8 @@ def train_pipeline(
 
 def _evaluate(pipeline: dict, X_te: np.ndarray, y_te: np.ndarray,
               graph_risk_te: np.ndarray | None = None) -> dict:
-    from module4_base_models import get_ensemble_probabilities
-    from modules678 import DEFAULT_GRAPH_RISK
+    from .base_models import get_ensemble_probabilities
+    from .stacking_shap import DEFAULT_GRAPH_RISK
 
     base_models = pipeline["base_models"]
     voter = pipeline["soft_voter"]
@@ -248,10 +248,10 @@ def predict(df: pd.DataFrame,
     Run inference on a raw profile DataFrame.
     Returns a results DataFrame with label, probability, risk_band, etc.
     """
-    from module2_feature_extraction import build_unified_features
-    from module4_base_models import get_ensemble_probabilities
-    from modules678 import DEFAULT_GRAPH_RISK
-    from module11_output import format_output
+    from .feature_extraction import build_unified_features
+    from .base_models import get_ensemble_probabilities
+    from .stacking_shap import DEFAULT_GRAPH_RISK
+    from .output import format_output
 
     if pipeline is None:
         pipeline = load_pipeline(pipeline_path)

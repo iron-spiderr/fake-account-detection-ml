@@ -1,10 +1,17 @@
 """
-Process 15 — Flask Web Application
+Flask Web Application
 Provides a browser-based interface for the Fake Account Detection System.
 """
 
 import argparse
 import logging
+import os
+import sys
+
+# Ensure the project root is on sys.path so `src` package is importable
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 import pandas as pd
 from flask import Flask, jsonify, render_template, request, session
@@ -25,7 +32,7 @@ def _get_scraper():
     global _scraper
     if _scraper is None:
         try:
-            from scraper import InstagramScraper
+            from src.scraper import InstagramScraper
             _scraper = InstagramScraper(delay_min=2.0, delay_max=4.0)
             logger.info("Instagram scraper ready.")
         except ImportError:
@@ -37,7 +44,7 @@ def _get_pipeline():
     global _pipeline
     if _pipeline is None:
         try:
-            from modules910 import load_pipeline
+            from src.pipeline import load_pipeline
             _pipeline = load_pipeline()
             logger.info("Pipeline loaded successfully.")
         except FileNotFoundError:
@@ -68,8 +75,8 @@ def api_status():
 @app.route("/api/demo", methods=["POST"])
 def api_demo():
     try:
-        from instagram_api import create_demo_profiles
-        from modules910 import predict
+        from src.instagram_api import create_demo_profiles
+        from src.pipeline import predict
         pipeline = _get_pipeline()
         if pipeline is None:
             return jsonify({"ok": False, "error": "Pipeline not trained yet."}), 503
@@ -120,7 +127,7 @@ def api_demo_test():
     if pipeline is None:
         return jsonify({"ok": False, "error": "Pipeline not trained yet."}), 503
 
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_profiles.csv")
+    csv_path = os.path.join(_PROJECT_ROOT, "scripts", "test_profiles.csv")
     if not os.path.exists(csv_path):
         return jsonify({
             "ok": False,
@@ -131,7 +138,7 @@ def api_demo_test():
         df = pd.read_csv(csv_path)
         ground_truth = df["is_fake"].tolist() if "is_fake" in df.columns else None
 
-        from modules910 import predict
+        from src.pipeline import predict
         results_df = predict(df, pipeline=pipeline)
         results = results_df.to_dict(orient="records")
 
@@ -184,12 +191,12 @@ def api_scan_self():
     if pipeline is None:
         return jsonify({"ok": False, "error": "Pipeline not ready."}), 503
     try:
-        from instagram_api import InstagramAPIClient
+        from src.instagram_api import InstagramAPIClient
         client = InstagramAPIClient(token)
         profile = client.get_own_profile()
         media = client.get_user_media(profile.get("id", ""))
         df = client.profile_to_dataframe(profile, media)
-        from modules910 import predict
+        from src.pipeline import predict
         results_df = predict(df, pipeline=pipeline)
         results = results_df.to_dict(orient="records")
         _add_to_history("self", results)
@@ -213,7 +220,7 @@ def api_scan_users():
     if pipeline is None:
         return jsonify({"ok": False, "error": "Pipeline not ready."}), 503
     try:
-        from instagram_api import InstagramAPIClient
+        from src.instagram_api import InstagramAPIClient
         client = InstagramAPIClient(token)
         results_df = client.fetch_and_analyse(usernames, pipeline)
         results = results_df.to_dict(orient="records")
@@ -243,7 +250,7 @@ def api_scrape():
     try:
         profile_data = scraper.scrape_profile(username)
     except Exception as exc:          # catches RateLimitError + anything else
-        from scraper import RateLimitError
+        from src.scraper import RateLimitError
         if isinstance(exc, RateLimitError):
             return jsonify({
                 "ok": False,
@@ -266,7 +273,7 @@ def api_scrape():
 
     # 3. Predict
     try:
-        from modules910 import predict
+        from src.pipeline import predict
         df = pd.DataFrame([raw])
         results_df = predict(df, pipeline=pipeline)
         results = results_df.to_dict(orient="records")
@@ -362,7 +369,7 @@ def api_manual():
             "verified":                 int(bool(body.get("verified", False))),
         }])
 
-        from modules910 import predict
+        from src.pipeline import predict
         results_df = predict(df, pipeline=pipeline)
         results = results_df.to_dict(orient="records")
 
@@ -419,7 +426,7 @@ def _recalibrate_for_incomplete_data(results: list,
     This replaces the old flat bias=0.38 subtraction, which over-corrected
     some accounts and under-corrected others.
     """
-    from module11_output import generate_explanation, _risk_band
+    from src.output import generate_explanation, _risk_band
 
     # Stage 1: signal weight — how much discriminative power metadata provides
     signal_weight = 0.20
@@ -472,7 +479,8 @@ def _recalibrate_for_incomplete_data(results: list,
 
         # Regenerate explanation with corrected values
         shap_vals = r.get("top_shap_values")
-        explanation = generate_explanation(label, adj_p, band, shap_vals)
+        explanation = generate_explanation(label, adj_p, band, shap_vals,
+                                           data_completeness=completeness)
 
         r["raw_model_probability"] = raw_p
         r["probability"] = adj_p
