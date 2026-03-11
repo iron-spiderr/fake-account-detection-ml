@@ -6,10 +6,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Accuracy: 97%](https://img.shields.io/badge/Accuracy-97.06%25-brightgreen.svg)](#results)
 
-<p align="center">
-  <img src="docs/screenshot.png" alt="Web UI Screenshot" width="700">
-</p>
-
 ---
 
 ## Highlights
